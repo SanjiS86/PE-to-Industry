@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>P/E vs Sector — Financial Modeling Prep</title>
+  <style>
+    :root{
+      --bg:#0f1222; --card:#161a2b; --muted:#9aa3c7; --grid:#22274a; --text:#e8ebff; --accent:#7aa2ff; --good:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(80vw 80vh at 20% -10%, #1b2250 0%, transparent 55%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif}
+    .wrap{max-width:1100px;margin:32px auto;padding:0 16px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+    h1{font-size:20px;margin:0}
+    .tag{font-size:12px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    @media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid var(--grid);border-radius:16px;padding:16px;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+    .card h2{margin:.2rem 0 1rem;font-size:16px;color:#cbd5ff}
+
+    label{display:block;font-size:12px;color:var(--muted);margin:4px 0}
+    input,select,button{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--grid);background:#0f142d;color:var(--text)}
+    input::placeholder{color:#7e88b7}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .actions{display:flex;gap:10px;margin-top:10px}
+    button{cursor:pointer;background:linear-gradient(180deg,#2a3ea1,#1f2a72);border:1px solid #2e3f85}
+    button.secondary{background:#131838}
+    button:disabled{opacity:.6;cursor:not-allowed}
+
+    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+    .kpi{background:#0f142d;border:1px dashed var(--grid);border-radius:12px;padding:12px}
+    .kpi .label{font-size:12px;color:var(--muted)}
+    .kpi .value{font-size:20px;margin-top:2px}
+
+    .compare{margin-top:12px;padding:12px;border-radius:14px;background:#10163a;border:1px solid var(--grid)}
+    .compare strong{color:#cbd5ff}
+
+    .bars{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
+    .bar{flex:1;background:#0e1330;border:1px solid var(--grid);border-radius:10px;padding:10px}
+    .bar .title{font-size:12px;color:var(--muted)}
+    .bar .meter{height:10px;border-radius:8px;background:linear-gradient(90deg,var(--accent),#9eaaf7)}
+    .bar .num{font-size:12px;margin-top:6px}
+
+    .result{margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--grid)}
+    .result.good{background:rgba(34,197,94,.08)}
+    .result.bad{background:rgba(239,68,68,.08)}
+    .result.neutral{background:rgba(245,158,11,.08)}
+
+    .muted{color:var(--muted)}
+    .loading{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(8,10,22,.55);backdrop-filter:blur(2px);z-index:20}
+    .spinner{width:46px;height:46px;border-radius:50%;border:3px solid #2a3566;border-top-color:#9eaaf7;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    footer{margin:24px 0 8px;color:var(--muted);font-size:12px}
+
+    .inline{display:flex;align-items:center;gap:8px}
+    .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>P/E vs Sector — <span class="tag">Financial Modeling Prep</span></h1>
+      <div class="tag">Client‑side demo. Enter your API key.</div>
+    </header>
+
+    <div class="grid">
+      
+      <div class="card">
+        <h2>Inputs</h2>
+        <div class="row">
+          <div>
+            <label>FMP API Key</label>
+            <div class="inline">
+              <input id="apiKey" type="password" placeholder="custom_api_key" autocomplete="off" />
+              <button id="toggleKey" class="secondary" type="button" style="width:auto;padding:8px 10px">Show</button>
+            </div>
+          </div>
+          <div>
+            <label>Ticker</label>
+            <input id="ticker" placeholder="AAPL" value="AAPL" />
+          </div>
+        </div>
+        <div class="row-3" style="margin-top:10px">
+          <div>
+            <label>Sector Snapshot Date</label>
+            <input id="date" type="date" value="2024-02-01" />
+          </div>
+          <div>
+            <label>Exchange (for sector PE)</label>
+            <select id="exchange">
+              <option value="ANY">Any</option>
+              <option value="NASDAQ" selected>NASDAQ</option>
+              <option value="NYSE">NYSE</option>
+              <option value="AMEX">AMEX</option>
+            </select>
+          </div>
+          <div>
+            <label>Sector (auto if detected)</label>
+            <select id="sector">
+              <option value="">— auto / choose —</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="run">Fetch & Compare</button>
+          <button id="reset" type="button" class="secondary">Reset</button>
+        </div>
+
+        <div id="out" style="margin-top:14px;display:none">
+          <div class="kpis">
+            <div class="kpi">
+              <div class="label">Company P/E (latest FY)</div>
+              <div class="value" id="peCompany">—</div>
+              <div class="muted" id="peCompanyMeta"></div>
+            </div>
+            <div class="kpi">
+              <div class="label">Sector P/E</div>
+              <div class="value" id="peSector">—</div>
+              <div class="muted" id="peSectorMeta"></div>
+            </div>
+            <div class="kpi">
+              <div class="label">Difference vs Sector</div>
+              <div class="value" id="diff">—</div>
+              <div class="muted" id="diffMeta"></div>
+            </div>
+          </div>
+
+          <div class="bars">
+            <div class="bar">
+              <div class="title" id="bar1Title">Company</div>
+              <div class="meter" id="bar1" style="width:0%"></div>
+              <div class="num" id="bar1Num"></div>
+            </div>
+            <div class="bar">
+              <div class="title" id="bar2Title">Sector</div>
+              <div class="meter" id="bar2" style="width:0%"></div>
+              <div class="num" id="bar2Num"></div>
+            </div>
+          </div>
+
+          <div id="verdict" class="result neutral" style="margin-top:14px"></div>
+          <div class="hint">Note: This is a simple P/E comparison. Always pair it with growth, margins, cash flow, and balance‑sheet checks.</div>
+        </div>
+      </div>
+
+      
+      <div class="card">
+        <h2>Sector P/E Snapshot (by Exchange)</h2>
+        <div id="tableWrap" class="muted">Run a query to load snapshot data.</div>
+      </div>
+    </div>
+
+    <footer>
+      Built for demo/education. Your API key stays in your browser (localStorage if you keep it).
+    </footer>
+  </div>
+
+  <div class="loading" id="loading"><div class="spinner"></div></div>
+
+  <script>
+    const el = id => document.getElementById(id);
+    const fmt = n => (isFinite(n) ? Number(n).toLocaleString(undefined,{maximumFractionDigits:2}) : '—');
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+    const apiKeyEl = el('apiKey');
+    const toggleKeyEl = el('toggleKey');
+    const tickerEl = el('ticker');
+    const dateEl = el('date');
+    const exchangeEl = el('exchange');
+    const sectorEl = el('sector');
+    const loadingEl = el('loading');
+
+    const outWrap = el('out');
+    const peCompanyEl = el('peCompany');
+    const peCompanyMetaEl = el('peCompanyMeta');
+    const peSectorEl = el('peSector');
+    const peSectorMetaEl = el('peSectorMeta');
+    const diffEl = el('diff');
+    const diffMetaEl = el('diffMeta');
+    const verdictEl = el('verdict');
+
+    const bar1 = el('bar1');
+    const bar1Num = el('bar1Num');
+    const bar2 = el('bar2');
+    const bar2Num = el('bar2Num');
+
+    const tableWrap = el('tableWrap');
+
+    
+    (function init(){
+      const savedKey = localStorage.getItem('fmp_key');
+      if(savedKey) apiKeyEl.value = savedKey;
+      const savedDate = localStorage.getItem('fmp_sector_date');
+      if(savedDate) dateEl.value = savedDate;
+      const savedEx = localStorage.getItem('fmp_exchange');
+      if(savedEx) exchangeEl.value = savedEx;
+    })();
+
+    toggleKeyEl.addEventListener('click',()=>{
+      apiKeyEl.type = apiKeyEl.type === 'password' ? 'text' : 'password';
+      toggleKeyEl.textContent = apiKeyEl.type === 'password' ? 'Show' : 'Hide';
+    });
+
+    el('reset').addEventListener('click', ()=>{
+      apiKeyEl.value = '';
+      tickerEl.value = 'AAPL';
+      dateEl.value = '2024-02-01';
+      exchangeEl.value = 'NASDAQ';
+      sectorEl.innerHTML = '<option value="">— auto / choose —</option>';
+      outWrap.style.display = 'none';
+      tableWrap.innerHTML = 'Run a query to load snapshot data.';
+      localStorage.removeItem('fmp_key');
+      localStorage.removeItem('fmp_sector_date');
+      localStorage.removeItem('fmp_exchange');
+    });
+
+    el('run').addEventListener('click', async (e)=>{
+      e.preventDefault();
+      const key = apiKeyEl.value.trim();
+      const sym = tickerEl.value.trim().toUpperCase();
+      const date = dateEl.value || '2024-02-01';
+      const ex = exchangeEl.value;
+      if(!key){ alert('Please enter your FMP API key.'); return; }
+      if(!sym){ alert('Please enter a stock ticker.'); return; }
+
+      
+      localStorage.setItem('fmp_key', key);
+      localStorage.setItem('fmp_sector_date', date);
+      localStorage.setItem('fmp_exchange', ex);
+
+      loading(true);
+      try{
+        const [ratios, snapshot, profile] = await Promise.all([
+          fetchRatios(sym, key),
+          fetchSectorSnapshot(date, key),
+          fetchProfileWithFallback(sym, key)
+        ]);
+
+        
+        const uniqueSectors = [...new Set(snapshot.map(r=>r.sector))].sort();
+        sectorEl.innerHTML = '<option value="">— auto / choose —</option>' + uniqueSectors.map(s=>`<option value="${s}">${s}</option>`).join('');
+
+        
+        let detectedSector = (profile && (profile.sector || profile.industry)) ? profile.sector : '';
+        if(detectedSector){
+          
+          const match = uniqueSectors.find(s => s.toLowerCase() === String(detectedSector).toLowerCase());
+          if(match) detectedSector = match; else detectedSector = '';
+        }
+        if(detectedSector){ sectorEl.value = detectedSector; }
+
+        
+        const latest = ratios.sort((a,b)=> new Date(b.date) - new Date(a.date))[0];
+        const pe = Number(latest?.priceToEarningsRatio);
+        peCompanyEl.textContent = isFinite(pe) ? fmt(pe) : '—';
+        peCompanyMetaEl.textContent = `${sym} • FY ${latest?.fiscalYear ?? '—'} • ${latest?.date ?? ''}`.trim();
+
+        
+        const chosenSector = sectorEl.value || 'Technology'; 
+        if(!sectorEl.value){
+          
+          const hasTech = uniqueSectors.includes('Technology');
+          sectorEl.value = hasTech ? 'Technology' : uniqueSectors[0];
+        }
+        const chosenExchange = ex;
+
+        let row = null;
+        if(chosenExchange !== 'ANY'){
+          row = snapshot.find(r => r.sector === sectorEl.value && r.exchange === chosenExchange);
+        }
+        if(!row){
+          
+          row = snapshot.find(r => r.sector === sectorEl.value);
+        }
+        if(!row){
+          throw new Error('Sector row not found in snapshot. Try a different date or exchange.');
+        }
+
+        const sectorPE = Number(row.pe);
+        peSectorEl.textContent = isFinite(sectorPE) ? fmt(sectorPE) : '—';
+        peSectorMetaEl.textContent = `${row.sector} • ${row.exchange} • ${row.date}`;
+
+        
+        const diff = isFinite(pe) && isFinite(sectorPE) ? pe - sectorPE : NaN;
+        const pct = isFinite(pe) && isFinite(sectorPE) && sectorPE !== 0 ? (diff / sectorPE) * 100 : NaN;
+        diffEl.textContent = isFinite(pct) ? `${diff > 0 ? '+' : ''}${fmt(pct)}%` : '—';
+        diffMetaEl.textContent = isFinite(diff) ? `${diff>0?'+':''}${fmt(diff)} absolute` : '';
+
+     
+        const maxVal = Math.max(pe||0, sectorPE||0) || 1;
+        bar1.style.width = clamp((pe/maxVal)*100, 5, 100) + '%';
+        bar2.style.width = clamp((sectorPE/maxVal)*100, 5, 100) + '%';
+        bar1Num.textContent = isFinite(pe) ? fmt(pe) : '—';
+        bar2Num.textContent = isFinite(sectorPE) ? fmt(sectorPE) : '—';
+        el('bar1Title').textContent = `${sym} P/E`;
+        el('bar2Title').textContent = `${row.sector} P/E`;
+
+        
+        let cls = 'neutral';
+        let msg = '';
+        if(!isFinite(pe) || !isFinite(sectorPE)){
+          cls = 'neutral';
+          msg = `Could not compute a clean comparison. Check if P/E is missing or negative.`;
+        } else if(pe < 0 || sectorPE <= 0){
+          cls = 'neutral';
+          msg = `P/E is non‑positive (losses or zero). A plain sector comparison is not meaningful.`;
+        } else {
+          const threshold = 10; // %
+          if(pct <= -threshold){
+            cls = 'good';
+            msg = `${sym} looks cheaper than ${row.sector} by ${fmt(Math.abs(pct))}% on P/E. Potentially undervalued vs sector average — investigate quality, growth, and cyclicality.`;
+          } else if(pct >= threshold){
+            cls = 'bad';
+            msg = `${sym} trades ${fmt(pct)}% richer than ${row.sector} on P/E. Could be overvalued vs sector peers unless growth/quality justify it.`;
+          } else {
+            cls = 'neutral';
+            msg = `${sym} is roughly in line (±${threshold}%) with ${row.sector} on P/E.`;
+          }
+        }
+        verdictEl.className = `result ${cls}`;
+        verdictEl.textContent = msg;
+
+        
+        renderSnapshotTable(snapshot, row.sector, row.exchange);
+
+        outWrap.style.display = 'block';
+      }catch(err){
+        console.error(err);
+        alert(`Error: ${err.message || err}`);
+      }finally{
+        loading(false);
+      }
+    });
+
+    function loading(v){ loadingEl.style.display = v ? 'flex' : 'none'; }
+
+    async function fetchRatios(symbol, key){
+      const url = `https://financialmodelingprep.com/stable/ratios?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(key)}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`Failed to fetch ratios (${res.status})`);
+      const data = await res.json();
+      if(!Array.isArray(data) || !data.length) throw new Error('No ratios returned.');
+      return data;
+    }
+
+    async function fetchSectorSnapshot(date, key){
+      const url = `https://financialmodelingprep.com/stable/sector-pe-snapshot?date=${encodeURIComponent(date)}&apikey=${encodeURIComponent(key)}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`Failed to fetch sector snapshot (${res.status})`);
+      const data = await res.json();
+      if(!Array.isArray(data) || !data.length) throw new Error('No sector snapshot returned. Try another date.');
+      return data;
+    }
+
+    async function fetchProfileWithFallback(symbol, key){
+      
+      const stableUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(key)}`;
+      try{
+        const a = await fetch(stableUrl);
+        if(a.ok){
+          const j = await a.json();
+          const obj = Array.isArray(j) ? j[0] : j;
+          if(obj && (obj.sector || obj.industry)) return obj;
+        }
+      }catch(e){ }
+      const v3Url = `https://financialmodelingprep.com/api/v3/profile/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(key)}`;
+      const b = await fetch(v3Url);
+      if(b.ok){
+        const j = await b.json();
+        const obj = Array.isArray(j) ? j[0] : j;
+        return obj || null;
+      }
+      return null;
+    }
+
+    function renderSnapshotTable(rows, highlightSector, highlightExchange){
+      const ex = exchangeEl.value;
+      const filtered = ex === 'ANY' ? rows : rows.filter(r=>r.exchange === ex);
+      const sorted = filtered.slice().sort((a,b)=> a.sector.localeCompare(b.sector));
+      const html = [
+        '<div style="overflow:auto;max-height:460px;border:1px solid var(--grid);border-radius:12px">',
+        '<table style="width:100%;border-collapse:collapse;min-width:420px">',
+        '<thead><tr style="position:sticky;top:0;background:#0f142d"><th style="text-align:left;padding:10px;border-bottom:1px solid var(--grid)">Sector</th><th style="text-align:left;padding:10px;border-bottom:1px solid var(--grid)">Exchange</th><th style="text-align:right;padding:10px;border-bottom:1px solid var(--grid)">P/E</th></tr></thead>',
+        '<tbody>' + sorted.map(r=>{
+          const hl = (r.sector === highlightSector && (!highlightExchange || r.exchange === highlightExchange));
+          return `<tr style="background:${hl?'rgba(122,162,255,.08)':'transparent'}"><td style="padding:10px;border-bottom:1px solid var(--grid)">${r.sector}</td><td style="padding:10px;border-bottom:1px solid var(--grid)">${r.exchange}</td><td style="padding:10px;border-bottom:1px solid var(--grid);text-align:right">${fmt(r.pe)}</td></tr>`;
+        }).join('') + '</tbody></table></div>'
+      ].join('');
+      tableWrap.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
