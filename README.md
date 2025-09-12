@@ -1,4 +1,4 @@
-# 📈 Price to Earnings Ration to Industry P/E comparison with conclusions
+# 📈 Price to Earnings Ration to Sector P/E comparison with conclusions
 
 ## 🚀 Getting Started
 
