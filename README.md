@@ -19,7 +19,7 @@ This single-file web app lets you input a stock ticker and pulls its latest P/E 
 1. **Download [Visual Studio Code](https://code.visualstudio.com/).**
 2. **Clone my GitHub repository.**
     ```sh
-    git clone https://github.com/SanjiS86/singleStockHeatmap
+    git clone https://github.com/SanjiS86/PE-to-Sector
     ```
 3. **Drag the `heatmap.html` file to an open browser window.**
 
